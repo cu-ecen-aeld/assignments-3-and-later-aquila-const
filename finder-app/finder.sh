@@ -13,9 +13,9 @@ help () {
 }
 
 walk_dir(){
-    line_count="$(grep -rnw "${searchstr}" "${filesdir}" | wc -l)"
-    file_count="$(grep -l -rnw -i "${searchstr}" "${filesdir}" | wc -l)"
-    echo "The number of files are ${file_count} and the number of matching lines are ${line_count}"
+    x="$(grep -l -rnw -i "${searchstr}" "${filesdir}" | wc -l)"
+    y="$(grep -rnw "${searchstr}" "${filesdir}" | wc -l)"
+    echo "The number of files are ${x} and the number of matching lines are ${y}"
 
 }
 
