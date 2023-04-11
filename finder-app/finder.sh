@@ -16,7 +16,6 @@ walk_dir(){
     x="$(grep -l -rnw -i "${searchstr}" "${filesdir}" | wc -l)"
     y="$(grep -rnw "${searchstr}" "${filesdir}" | wc -l)"
     echo "The number of files are ${x} and the number of matching lines are ${y}"
-
 }
 
 if [ -d "$filesdir" ]; then
