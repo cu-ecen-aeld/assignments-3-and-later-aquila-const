@@ -1,11 +1,6 @@
 #!/bin/sh
 filesdir=$1 #argument one, which should be a path
 searchstr=$2 #argument two, which should be a search string
-<<<<<<< HEAD
-
-=======
-echo "$filesdir"
->>>>>>> 2564326fcd9a51878a9c2731b4d6a66d14aafc5f
 help () {
     echo "\nYou need exactly two arguments:"
     echo "1) The directory you are wanting to search in"
