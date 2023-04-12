@@ -21,6 +21,7 @@ walk_dir(){
 
 if [ $# -eq 2 ];then
     walk_dir
+    exit 0
 else
     echo "\nInvalid Arguments\n"
     help
