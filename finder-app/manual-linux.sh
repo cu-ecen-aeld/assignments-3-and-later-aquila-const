@@ -32,16 +32,27 @@ if [ ! -d "${OUTDIR}/linux-stable" ]; then
 fi
 if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable
+    
+    # if [ ! -f ./dtc-multiple-definition.patch ];then
+    #     wget https://raw.githubusercontent.com/bwalle/ptxdist-vetero/f1332461242e3245a47b4685bc02153160c0a1dd/patches/linux-5.0/dtc-multiple-definition.patch
+    #     git apply ./dtc-multiple-definition.patch
+    # else
+    #     git apply ./dtc-multiple-definition.patch
+    # fi
+
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
-    
 
     # TODO: Add your kernel build steps here
     echo "deep cleaning"
     #1 - deep clean
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
+
+    echo "configuring"
     #2 - setup default config
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
+  
+    echo "building vmlinux"
     #3 - build vmlinux
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
     #4 - build device tree and modules
@@ -81,6 +92,7 @@ then
     # TODO:  Configure busybox
     make distclean
     make defconfig
+    echo "Finished configuring busybox"
 else
     cd busybox
 fi
@@ -96,7 +108,7 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
-cd "$OUTDIR/rootfs"
+cd "${OUTDIR}/rootfs"
 ARM_TC=$(aarch64-none-linux-gnu-gcc -print-sysroot)
 
 cp -r ${ARM_TC}/lib/* lib/
@@ -107,17 +119,19 @@ sudo mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
 # TODO: Clean and build the writer utility
 cd "${FINDER_APP_DIR}"
 make clean
-make CROSS_COMPILE=${CROSS_COMPILE} all
+make CROSS_COMPILE=${CROSS_COMPILE}
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
+echo "Moving finder files"
+cp ./*.sh ${OUTDIR}/rootfs/home/
 mkdir -p ${OUTDIR}/rootfs/home/conf
 cp ./conf/* ${OUTDIR}/rootfs/home/conf
 cp ./writer ${OUTDIR}/rootfs/home/
-cp ./*.sh ${OUTDIR}/rootfs/home/
+echo "Finished moving"
 
 # TODO: Chown the root directory
 cd "${OUTDIR}/rootfs"
-sudo chown -R root ${OUTDIR}/rootfs
+sudo chown -R root ${OUTDIR}/rootfs/
 
 # TODO: Create initramfs.cpio.gz
 
