@@ -54,13 +54,13 @@ bool do_exec(int count, ...)
 
     int pid = fork();
     int ref;
-    if(pid == 0){
-        execv(command[0], command);
+    if(pid == -1) return false;
+    if(pid == 0)
+    {
+        int rc = execv(command[0], command);
         
         printf("Could not execute command");
-        exit(-1);
-    } else if(pid > 0){
-        exit(1);
+        if(rc == -1) exit(-1);
     }
     if(waitpid(pid, &ref, 0) == -1)
     {
