@@ -1,5 +1,10 @@
 #include "systemcalls.h"
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
 /**
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
@@ -9,14 +14,10 @@
 */
 bool do_system(const char *cmd)
 {
-
-/*
- * TODO  add your code here
- *  Call the system() function with the command set in the cmd
- *   and return a boolean true if the system() call completed with success
- *   or false() if it returned a failure
-*/
-
+    
+    int system_call = system(cmd);
+    
+    if(system_call != 0) return false;
     return true;
 }
 
@@ -48,17 +49,27 @@ bool do_exec(int count, ...)
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
     command[count] = command[count];
+    //https://stackoverflow.com/questions/42690197/why-does-this-program-with-fork-print-twice/42690260#42690260
+    fflush(stdout);
 
-/*
- * TODO:
- *   Execute a system command by calling fork, execv(),
- *   and wait instead of system (see LSP page 161).
- *   Use the command[0] as the full path to the command to execute
- *   (first argument to execv), and use the remaining arguments
- *   as second argument to the execv() command.
- *
-*/
-
+    int pid = fork();
+    int ref;
+    if(pid == 0){
+        execv(command[0], command);
+        
+        printf("Could not execute command");
+        exit(-1);
+    } else if(pid > 0){
+        exit(1);
+    }
+    if(waitpid(pid, &ref, 0) == -1)
+    {
+        return false;
+    } else if(WIFEXITED(ref)) {
+        return WEXITSTATUS(ref) != 0 ? false : true;
+    } else {
+        return false;
+    }
     va_end(args);
 
     return true;
@@ -84,15 +95,39 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     // and may be removed
     command[count] = command[count];
 
-
-/*
- * TODO
- *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
- *   redirect standard out to a file specified by outputfile.
- *   The rest of the behaviour is same as do_exec()
- *
-*/
-
+    int kpid;
+    int ref;
+    int fd = open(outputfile, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    if(fd < 0)
+    {
+        perror("open");
+        abort();
+    }
+    switch (kpid = fork())
+    {
+    case -1:
+        perror("fork");
+        return false;
+    case 0:
+        if(dup2(fd,1)<0)
+        {
+            perror("dup2");
+            abort();
+        }
+        close(fd);
+        int rc = execv(command[0], command);
+        perror("execv");
+        if(rc == -1) exit(-1);
+    default:
+        close(fd);
+        bool wait_status = waitpid(kpid, &ref, 0) == -1 ? false : true;
+        if(WIFEXITED(ref))
+        {
+            return WEXITSTATUS(ref) != 0 ? false : true;
+        }
+        return wait_status;
+    }
+    
     va_end(args);
 
     return true;
