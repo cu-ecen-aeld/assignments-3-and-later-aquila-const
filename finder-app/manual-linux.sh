@@ -104,15 +104,15 @@ make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
 make CONFIG_PREFIX=${OUTDIR}/rootfs/ ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 
 echo "Library dependencies"
-${CROSS_COMPILE}readelf -a "${OUTPUTDIR}"/rootfs/bin/busybox | grep "program interpreter"
-${CROSS_COMPILE}readelf -a "${OUTPUTDIR}"/rootfs/bin/busybox | grep "Shared library"
+${CROSS_COMPILE}readelf -a "${OUTDIR}"/rootfs/bin/busybox | grep "program interpreter"
+${CROSS_COMPILE}readelf -a "${OUTDIR}"/rootfs/bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
 cd "${OUTDIR}/rootfs"
 ARM_TC=$(aarch64-none-linux-gnu-gcc -print-sysroot)
 
-cp -r ${ARM_TC}/lib/* lib/
-cp -r ${ARM_TC}/lib64/* lib64/
+cp -r "${ARM_TC}"/lib/* lib/
+cp -r "${ARM_TC}"/lib64/* lib64/
 # TODO: Make device nodes
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
