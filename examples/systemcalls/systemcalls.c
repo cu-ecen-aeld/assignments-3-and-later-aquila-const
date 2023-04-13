@@ -14,7 +14,7 @@
 */
 bool do_system(const char *cmd)
 {
-    
+
     int system_call = system(cmd);
     
     if(system_call != 0) return false;
@@ -107,6 +107,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     {
     case -1:
         perror("fork");
+        printf("Could not fork.");
         return false;
     case 0:
         if(dup2(fd,1)<0)
