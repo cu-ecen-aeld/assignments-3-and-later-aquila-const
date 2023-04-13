@@ -20,16 +20,6 @@ else
 	OUTDIR=$1
 	echo "Using passed directory ${OUTDIR} for output"
 fi
-#If dir does not exist, create it and check
-#if creation was successful else exit.
-if [ ! -d $OUTDIR ];then
-    mkdir -p ${OUTDIR}
-    if [ -d $OUTDIR ];then
-        echo "Directory ${OUTDIR} has been created"
-    else
-        echo "Directory creation failed" ; exit 1;
-    fi
-fi
 
 mkdir -p ${OUTDIR}
 
@@ -50,31 +40,26 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     echo "deep cleaning"
     #1 - deep clean
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
-    #ubuntu 22.04 fix
-    # if [ ! -f ./dtc-multiple-definition.patch ];then
-    #     wget https://raw.githubusercontent.com/bwalle/ptxdist-vetero/f1332461242e3245a47b4685bc02153160c0a1dd/patches/linux-5.0/dtc-multiple-definition.patch
-    #     git apply ./dtc-multiple-definition.patch
-    # else
-    #     git apply ./dtc-multiple-definition.patch
-    # fi
     #2 - setup default config
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
     #3 - build vmlinux
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
     #4 - build device tree and modules
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules #uncomment for local useage 
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules 
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
 
 fi
 
 echo "Adding the Image in outdir"
 cp ${OUTDIR}/linux-stable/arch/arm64/boot/Image ${OUTDIR}
+
 echo "Creating the staging directory for the root filesystem"
 cd "$OUTDIR"
+
 if [ -d "${OUTDIR}/rootfs" ]
 then
 	echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
-    sudo rm  -rf ${OUTDIR}/rootfs
+    sudo rm -rf ${OUTDIR}/rootfs
 fi
 
 # TODO: Create necessary base directories
@@ -90,7 +75,7 @@ cd "$OUTDIR"
 
 if [ ! -d "${OUTDIR}/busybox" ]
 then
-git clone git://busybox.net/busybox.git
+    git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
@@ -112,8 +97,10 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
 cd "$OUTDIR/rootfs"
-cp -r $(aarch64-none-linux-gnu-gcc -print-sysroot)/lib/* lib/
-cp -r $(aarch64-none-linux-gnu-gcc -print-sysroot)/lib64/* lib64/
+ARM_TC=$(aarch64-none-linux-gnu-gcc -print-sysroot)
+
+cp -r ${ARM_TC}/lib/* lib/
+cp -r ${ARM_TC}/lib64/* lib64/
 # TODO: Make device nodes
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
@@ -123,18 +110,17 @@ make clean
 make CROSS_COMPILE=${CROSS_COMPILE} all
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
-mkdir ${OUTDIR}/rootfs/home/conf
+mkdir -p ${OUTDIR}/rootfs/home/conf
 cp ./conf/* ${OUTDIR}/rootfs/home/conf
 cp ./writer ${OUTDIR}/rootfs/home/
 cp ./*.sh ${OUTDIR}/rootfs/home/
 
 # TODO: Chown the root directory
 cd "${OUTDIR}/rootfs"
-sudo chown -R root:root ${OUTDIR}/rootfs
+sudo chown -R root ${OUTDIR}/rootfs
 
 # TODO: Create initramfs.cpio.gz
 
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 cd ..
-gzip -f initramfs.cpio
-cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/
+gzip -f ${OUTDIR}initramfs.cpio
