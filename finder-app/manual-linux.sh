@@ -56,7 +56,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     #3 - build vmlinux
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
     #4 - build device tree and modules
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules 
+    # make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules 
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
 
 fi
@@ -104,8 +104,8 @@ make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
 make CONFIG_PREFIX=${OUTDIR}/rootfs/ ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 
 echo "Library dependencies"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
+${CROSS_COMPILE}readelf -a "${OUTPUTDIR}"/rootfs/bin/busybox | grep "program interpreter"
+${CROSS_COMPILE}readelf -a "${OUTPUTDIR}"/rootfs/bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
 cd "${OUTDIR}/rootfs"
