@@ -51,18 +51,18 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     #1 - deep clean
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
     #ubuntu 22.04 fix
-    if [ ! -f ./dtc-multiple-definition.patch ];then
-        wget https://raw.githubusercontent.com/bwalle/ptxdist-vetero/f1332461242e3245a47b4685bc02153160c0a1dd/patches/linux-5.0/dtc-multiple-definition.patch
-        git apply ./dtc-multiple-definition.patch
-    else
-        git apply ./dtc-multiple-definition.patch
-    fi
+    # if [ ! -f ./dtc-multiple-definition.patch ];then
+    #     wget https://raw.githubusercontent.com/bwalle/ptxdist-vetero/f1332461242e3245a47b4685bc02153160c0a1dd/patches/linux-5.0/dtc-multiple-definition.patch
+    #     git apply ./dtc-multiple-definition.patch
+    # else
+    #     git apply ./dtc-multiple-definition.patch
+    # fi
     #2 - setup default config
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
     #3 - build vmlinux
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
     #4 - build device tree and modules
-    # make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules #uncomment for local useage 
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules #uncomment for local useage 
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
 
 fi
@@ -86,6 +86,8 @@ mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr var
 mkdir -p usr/bin usr/lib usr/sbin
 mkdir -p var/log
 
+cd "$OUTDIR"
+
 if [ ! -d "${OUTDIR}/busybox" ]
 then
 git clone git://busybox.net/busybox.git
@@ -98,6 +100,7 @@ else
     cd busybox
 fi
 
+
 # TODO: Make and install busybox
 
 make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
@@ -108,17 +111,15 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
-cp ${CROSS_COMPILE}/arch64-none-linux-gnu/libc/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/
-cp ${CROSS_COMPILE}/arch64-none-linux-gnu/libc/lib64/libm.so.6 ${OUTDIR}/rootfs/lib64/
-cp ${CROSS_COMPILE}/arch64-none-linux-gnu/libc/lib64/libresolv.so.2 ${OUTDIR}/rootfs/lib64/
-cp ${CROSS_COMPILE}/arch64-none-linux-gnu/libc/lib64/libc.so.6 ${OUTDIR}/rootfs/lib64/
-
+cd "$OUTDIR/rootfs"
+cp -r $(aarch64-none-linux-gnu-gcc -print-sysroot)/lib/* lib/
+cp -r $(aarch64-none-linux-gnu-gcc -print-sysroot)/lib64/* lib64/
 # TODO: Make device nodes
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
 # TODO: Clean and build the writer utility
 cd "${FINDER_APP_DIR}"
-make CROSS_COMPILE=${CROSS_COMPILE} clean
+make clean
 make CROSS_COMPILE=${CROSS_COMPILE} all
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
@@ -128,12 +129,12 @@ cp ./writer ${OUTDIR}/rootfs/home/
 cp ./*.sh ${OUTDIR}/rootfs/home/
 
 # TODO: Chown the root directory
+cd "${OUTDIR}/rootfs"
 sudo chown -R root:root ${OUTDIR}/rootfs
 
 # TODO: Create initramfs.cpio.gz
-cd "${OUTDIR}/rootfs"
 
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
-cd "${OUTDIR}"
+cd ..
 gzip -f initramfs.cpio
 cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/
