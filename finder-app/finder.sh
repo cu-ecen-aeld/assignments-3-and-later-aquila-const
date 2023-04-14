@@ -14,6 +14,7 @@ help () {
 walk_dir(){
     x="$(grep -l -rnw -i "${searchstr}" "${filesdir}" | wc -l)"
     y="$(grep -rnw "${searchstr}" "${filesdir}" | wc -l)"
+    echo "The number of files are ${x} and the number of matching lines are ${y}" > /tmp/assignment4-result.txt
     echo "The number of files are ${x} and the number of matching lines are ${y}"
 }
 
