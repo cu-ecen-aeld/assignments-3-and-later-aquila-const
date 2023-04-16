@@ -38,7 +38,12 @@ volatile sig_atomic_t sig_state = 0;
 
 void destroy_socket()
 {
+
+    if(clientdata) fclose(clientdata);
+    if(outfile) fclose(outfile);
+
     if(serverinfo) freeaddrinfo(serverinfo);
+    
     syslog(LOG_INFO, "Cleanup complete.");
     
 }
@@ -139,18 +144,18 @@ int main(int argc, char *argv[]){
 
         if(s_fd == -1)
         {
-            close(s_fd);
+            perror("accept");
             continue;
         }
 
-        if((clientdata = fdopen(s_fd, "rb")) == NULL) {
-            fclose(clientdata);
-        } else {
+        clientdata = fdopen(s_fd, "rb");
+    
+        if(clientdata){
             input = NULL;
             len = 0;
             if(getline(&input, &len, clientdata))
             {
-                if ((outfile = fopen(TARGET_FILE, "a+")) == NULL) fclose(outfile);
+                outfile = fopen(TARGET_FILE, "a+");
             
                 fputs(input, outfile);
                 fflush(outfile);
