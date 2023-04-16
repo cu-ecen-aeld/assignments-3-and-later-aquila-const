@@ -109,7 +109,9 @@ int main(int argc, char *argv[]){
 
     init_sock_struct(hints);
     
-    getaddrinfo("localhost", PORT, &hints, &serverinfo);
+    if (getaddrinfo("localhost", PORT, &hints, &serverinfo)){
+        return -1;
+    }
 
     sck_fd = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -119,7 +121,9 @@ int main(int argc, char *argv[]){
         return (-1);
     }
 
-    setsockopt(sck_fd, SOL_SOCKET, SO_REUSEADDR, &sock_opt, sizeof(sock_opt));
+    if(setsockopt(sck_fd, SOL_SOCKET, SO_REUSEADDR, &sock_opt, sizeof(sock_opt))){
+        return -1;
+    }
 
     if((bind(sck_fd, serverinfo->ai_addr, serverinfo->ai_addrlen)) != 0)
     {
@@ -127,7 +131,19 @@ int main(int argc, char *argv[]){
         return -1;
     }
     pid_t pid = fork();
-    if(argc == 2 && strcmp(argv[1], "-d") == 0 && pid) exit(0);
+    
+    if(argc == 2){
+        if(!strcmp(argv[1], "-d") == 0){
+            if(pid == -1)
+            {
+                return -1;
+            }
+            if(pid){
+                exit(EXIT_SUCCESS);
+            }
+        }
+    }
+
     
     if(listen(sck_fd, 10) == -1)
     {
