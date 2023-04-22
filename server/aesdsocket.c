@@ -47,10 +47,13 @@ void destroy_socket()
     syslog(LOG_INFO, "Cleanup complete.");
     
 }
+
 void sig_handler_(int signal)
 {
-    if(signal == SIGINT || signal == SIGTERM){ syslog(LOG_INFO, "Caught signal."); sig_state = 1;}
-    
+    if(signal == SIGINT || signal == SIGTERM || signal == SIGKILL){ 
+      syslog(LOG_INFO, "Caught signal.");
+      sig_state = 1;
+    }
     destroy_socket();
 
     remove(TARGET_FILE);
@@ -64,6 +67,8 @@ void init_sig_handler_(struct sigaction sigact){
     sigemptyset(&sigact.sa_mask);
     sigaction(SIGINT, &sigact, NULL);
     sigaction(SIGTERM, &sigact, NULL);
+    sigaction(SIGKILL, &sigact, NULL);
+
 }
 
 void init_sock_struct(struct addrinfo hints)
@@ -94,7 +99,7 @@ int main(int argc, char *argv[]){
     struct sockaddr their_addr;
     
     int s_fd = 0;
-
+    int lis_status = 0;
     struct sigaction old_act = {0};
     
     
@@ -133,23 +138,25 @@ int main(int argc, char *argv[]){
     pid_t pid = fork();
     
     if(argc == 2){
-        if(!strcmp(argv[1], "-d") == 0){
+        if(strcmp(argv[1], "-d") == 0){
             if(pid == -1)
             {
                 return -1;
             }
             if(pid){
+                printf("Waiting for connection request...\n");
+
                 exit(EXIT_SUCCESS);
             }
         }
     }
 
     
-    if(listen(sck_fd, 10) == -1)
+    if((lis_status = listen(sck_fd, 10)) == -1)
     {
         perror("listen");
         exit(1);
-    }
+    } 
 
     while(1)
     {
